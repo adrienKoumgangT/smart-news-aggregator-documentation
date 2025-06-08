@@ -1,0 +1,154 @@
+%! Author = adrienkoumgangtegantchouang
+%! Date = 07/06/25
+
+
+% Preamble
+\documentclass[a4paper, 12pt]{report}
+\usepackage[osf]{libertinus}
+\pagestyle{plain}
+\usepackage[top=2.5cm,bottom=2.5cm,left=4cm,right=2.5cm, centering]{geometry}
+\linespread{1.5}
+\usepackage[utf8]{inputenc} % codifica UTF-8
+\usepackage{scrlayer-scrpage} % stili pagina per il frontespizio
+\pagestyle{scrplain}
+\usepackage{mathptmx} % font Times New Roman (simile)
+\usepackage{graphicx, wrapfig}
+\usepackage{lipsum}
+
+\usepackage{url}
+\usepackage{changepage}
+\usepackage{multicol}
+\usepackage{caption}
+\usepackage{subcaption} % For the images' captions
+\usepackage[linesnumbered,ruled,vlined]{algorithm2e}
+\usepackage{amsmath} % For math symbols
+\usepackage{amsthm} % Theorem styles
+\usepackage{amssymb} % For special symbols % \mathbb and others
+\usepackage{mathrsfs} % An alternative font for categories and sheaves.
+\usepackage{cite} % For multiple citations
+% \usepackage{caption}
+% \usepackage{subcaption} % For the images' captions
+\usepackage[section]{placeins} % To not break (sub)-images in two
+\usepackage{booktabs}
+\usepackage{float} % Always for images
+\usepackage{soul} % For the \ul command, to use lists with less vertical spacing
+\usepackage{enumerate} % For (i) list style
+\usepackage{glossaries}
+% \usepackage{minted}
+
+\usepackage{blindtext}
+\usepackage{hyperref}
+
+%\usepackage{biblatex} % Imports biblatex package
+%\addbibresource{mybibliography.bib} % Import the bibliography file
+
+\usepackage{listings}
+% \usepackage{listings-rust}
+% \usepackage{rustlistings}
+\usepackage{xcolor} % Optional: for colored code
+\renewcommand{\lstlistingname}{Code}% Listing -> Codice\renewcommand{\lstlistingname}{Code}% Listing -> Codice
+
+\usepackage[noend]{algpseudocode}
+\algnewcommand\algorithmicforeach{\textbf{for each}}
+\algdef{S}[FOR]{ForEach}[1]{\algorithmicforeach\ \#1 \algorithmicdo}
+
+% \usepackage{color}
+\usepackage{ragged2e}
+\usepackage{algorithmicx}
+% \usepackage{algorithm}
+% \usepackage{algorithm2e}
+\usepackage{program}
+% \usepackage{listings-rust}
+\usepackage{mathtools}
+
+
+
+% \usepackage{xcolor}
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codemauve}{rgb}{0.4,0.,0.4}
+% \definecolor{codepurple}{rgb}{0.5,0.5,0.5}
+% \definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+% Define a custom color
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codekeywork3}{rgb}{0.82,0.56,0.43}
+% Define a custom style
+
+
+\lstdefinestyle{python}{
+    language=Python,                    % Set language to Python
+    basicstyle=\ttfamily\footnotesize,   % Basic font style for the code
+    keywordstyle=\color{blue}\bfseries,  % Style for keywords
+    stringstyle=\color{red},             % Style for strings
+    commentstyle=\color{gray}\itshape,   % Style for comments
+    numberstyle=\tiny\color{gray},       % Style for line numbers
+    backgroundcolor=\color{backcolour},   % choose the background color
+    numbers=left,                        % Show line numbers on the left
+    stepnumber=1,                        % Line numbers every 1 line
+    numbersep=8pt,                       % Space between line numbers and code
+    tabsize=4,                           % Width of a tab
+    showspaces=false,                    % Don't show spaces
+    showstringspaces=false,              % Don't show spaces in strings
+    showtabs=false,                      % Don't show tab characters
+    frame=single,                        % Add a frame around the code
+    rulecolor=\color{black},             % Frame color
+    captionpos=b,                        % Position of caption (bottom)
+    breaklines=true,                     % Automatically break long lines
+    breakatwhitespace=true,              % Allow breaking at whitespace
+    backgroundcolor=\color{white},       % Set background color
+    morekeywords={self, None, True, False}, % Additional Python-specific keywords
+    % escapeinside={(*@}{@*)},             % Escape inside code
+    alsoother={\<},
+    alsoother={\>},
+    literate={\<}{{\textless}}1 {\>}{{\textgreater}}1, % Handle < and > symbols
+}
+
+
+\newtheorem{mydef}{Definition}
+\newtheorem{mytheo}{Theorem}
+\newtheorem{mylem}{Lemma}
+\newtheorem{mypro}{Property}
+\newtheorem{myex}{Example}
+\newtheorem{mycor}{Corollary}
+\newtheorem{myproof}{Proof idea}
+\newtheorem{mypc}{Pseudocode}
+
+
+
+\begin{document}
+    \input{frontespizio}
+
+    \tableofcontents
+
+
+    \thispagestyle{empty}
+
+    \clearpage
+    \setcounter{page}{1}
+
+
+% Preambule (A Survey on Algorithmic Aspects of Modular Decomposition)
+% \include{chapters/chapter_00}
+
+
+% Introduction
+    % \include{chapters/chapter_01}
+
+
+% Conclusion
+    % \include{chapters/chapter_07}
+
+
+    \bibliographystyle{splncs03}
+    \bibliography{bibliography}
+    % \printbibliography
+
+
+% acknowledgement
+    \include{acknowledgments}
+
+    \include{glossary}
+
+\end{document}
