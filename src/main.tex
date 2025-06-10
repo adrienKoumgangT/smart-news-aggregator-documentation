@@ -105,6 +105,37 @@
     literate={\<}{{\textless}}1 {\>}{{\textgreater}}1, % Handle < and > symbols
 }
 
+\definecolor{jsonbackground}{RGB}{245,245,244}
+\definecolor{jsonstring}{RGB}{173,0,0}
+\definecolor{jsonkey}{RGB}{0,0,180}
+\definecolor{jsoncomment}{RGB}{85,85,85}
+\definecolor{jsonnumber}{RGB}{128,64,0}
+
+\lstdefinelanguage{json}{
+    basicstyle=\ttfamily\footnotesize,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    stepnumber=1,
+    numbersep=8pt,
+    showstringspaces=false,
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{jsonbackground},
+    string=[s]{"}{"},
+    comment=[l]{//},
+    morecomment=[s]{/*}{*/},
+    literate=
+        *{:}{{{\color{black}:}}}{1}
+        {,}{{{\color{black},}}}{1}
+        {\{}{{{\color{black}{\{}}}}{1}
+        {\}}{{{\color{black}{\}}}}}{1}
+        {[}{{{\color{black}[}}}{1}
+        {]}{{{\color{black}]}}}{1}
+    keywordstyle=\color{jsonkey}\bfseries,
+    stringstyle=\color{jsonstring},
+    commentstyle=\color{jsoncomment}\itshape
+}
+
 
 \newtheorem{mydef}{Definition}
 \newtheorem{mytheo}{Theorem}
@@ -133,7 +164,10 @@
     \include{chapters/chapter_01/Introduction}
 
 % Requirements Analysis
-    % \include{chapters/chapter_02/Requirements_Analysis}
+    \include{chapters/chapter_02/Requirements_Analysis}
+
+% System Design
+    \include{chapters/chapter_03/System_Design}
 
 % Conclusion
     % \include{chapters/chapter_07}

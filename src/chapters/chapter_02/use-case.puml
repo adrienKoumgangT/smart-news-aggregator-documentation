@@ -1,0 +1,99 @@
+@startuml
+left to right direction
+
+actor "Visitor \n (Anonymous user)" << Human >> as au
+actor "Registered User" << Human >> as ru
+actor "Administrator" << Human >> as ad
+actor "News Aggregator Service" << Application >> as nas
+actor "External News APIs" << API >> as ena
+
+au <|-- ru
+ru <|-- ad
+
+rectangle SmartNews {
+  usecase "Register Account" as UC_AU_1 #LightCoral
+  usecase "Check if Email already exists" as UC_AU_11 #Red
+  usecase "Login" as UC_AU_2 #LightCoral
+
+  usecase "Manage Profile" as UC_RU_1 #LightGreen
+  usecase "Change Password" as UC_RU_11 #LightGreen
+  usecase "Update personal data" as UC_RU_12 #LightGreen
+  usecase "Check is old password" as UC_RU_111 #Red
+  usecase "Personalizes Preferences" as UC_RU_4 #LightGreen
+  usecase "Browse Category/Tags" as UC_RU_41 #LightGreen
+  usecase "Browse Articles" as UC_RU_5 #LightGreen
+  usecase "Read Article" as UC_RU_6 #LightGreen
+  usecase "Filter Articles" as UC_RU_7 #LightGreen
+  usecase "Interacts with articles \n (like/comment)" as UC_RU_8 #LightGreen
+  usecase "Like Article" as UC_RU_81 #LightGreen
+  usecase "Comment Article" as UC_RU_82 #LightGreen
+  usecase "Comment Comment" as UC_RU_83 #LightGreen
+
+  usecase "Manage Users" as UC_AD_1 #LightYellow
+  usecase "View User information" as UC_AD_11
+  usecase "Change User Status" as UC_AD_12
+  usecase "Manage Articles" as UC_AD_2 #LightYellow
+  usecase "Remove Article" as UC_AD_21
+  usecase "Monitors logs \n and analytics" as UC_AD_3 #LightYellow
+
+  usecase "Fetches articles" as UC_NAS_1 #LightBlue
+  usecase "Write articles" as UC_NAS_11 #LightBlue
+
+  usecase "Provide raw article data" as UC_ENA_1 #LightBlue
+
+  usecase "Error Tracking" as UC_SYS_1
+}
+
+au --> UC_AU_1
+au --> UC_AU_2
+
+UC_AU_1 .> UC_AU_11 : include
+
+ru --> UC_RU_1
+' ru --> UC_RU_11
+' ru --> UC_RU_12
+ru --> UC_RU_4
+ru --> UC_RU_41
+ru --> UC_RU_5
+ru --> UC_RU_6
+ru --> UC_RU_7
+ru --> UC_RU_8
+ru --> UC_RU_81
+ru --> UC_RU_82
+ru --> UC_RU_83
+
+UC_RU_1 .> UC_RU_11 : extends
+UC_RU_1 .> UC_RU_12 : extends
+UC_RU_11 .> UC_RU_111 : include
+UC_RU_4 .> UC_RU_41 : include
+UC_RU_8 .> UC_RU_6 : include
+
+ad --> UC_AD_1
+ad --> UC_AD_2
+ad --> UC_AD_21
+ad --> UC_AD_3
+
+UC_AD_1 .> UC_AD_11 : include
+UC_AD_1 .> UC_AD_12 : include
+UC_AD_2 .> UC_RU_5 : include
+UC_AD_21 .> UC_RU_6 : include
+
+nas --> UC_NAS_1
+
+UC_NAS_1 .> UC_NAS_11 : include
+
+ena --> UC_ENA_1
+
+
+
+
+
+legend right
+  <color:Red>System Use Case</color>
+  <color:LightCoral>Anonymous User Use Case</color>
+  <color:LightGreen>Registered User Use Case</color>
+  <color:LightYellow>Administrator Use Case</color>
+  <color:LightBlue>System or External APIs Use Case</color>
+  <color:LightCoral>Dangerous Operation</color>
+end legend
+@enduml

@@ -1,0 +1,98 @@
+@startuml
+skinparam style strictuml
+' skinparam classAttributeIconSize 0
+
+' Entities
+class User {
+  - user_id: ObjectId
+  - firstname: str
+  - lastname: str
+  - email: str
+  - phone: str
+  - password: str
+  - preferences: List[str]
+  - created_at: datetime
+  - updated_at: datetime
+}
+
+class Author {
+  - name: str
+  - url: str
+}
+
+class Source {
+  - name: str
+  - url: str
+}
+
+class Article {
+  - article_id: ObjectId
+  - fetched_from: str
+  - title: str
+  - description: str
+  - content
+  - url: str
+  - image: str
+  - author: Author
+  - source: Source
+  - published_at: datetime
+  - category: str
+  - language: str
+  - country: str
+  - created_at: datetime
+  - updated_at: datetime
+}
+
+class UserArticleInteraction {
+  - interaction_id: ObjectId
+  - user_id: ObjectId
+  - article_id: ObjectId
+  - read_at: datetime
+  - time_spent: int
+  - liked: bool
+  - shared: bool
+  - saved: bool
+  - feedback: string
+  - created_at: datetime
+  - updated_at: datetime
+}
+
+class Comment {
+  - comment_id: ObjectId
+  - user_id: ObjectId
+  - article_id: ObjectId
+  - content: str
+  - created_at: datetime
+  - updated_at: datetime
+}
+
+class AuthEventLog {
+  - event_id: ObjectId
+  - event: str
+  - is_success: bool
+  - message: str
+  - request_data: dict
+  - created_at: datetime
+}
+
+class Admin {
+  - admin_id: ObjectId
+}
+
+class BackgroundFetcher {
+  - extern_api_data
+
+  + fetchFeeds()
+  + parseAndStore()
+  + updateTrendingStats()
+}
+
+' Relationships
+User "1" o-- "*" UserArticleInteraction : interacts >
+Article "1" o-- "*" UserArticleInteraction : < is_interacted
+User "1" o-- "*" Comment : "writes"
+Article "1" o-- "*" Comment : "has"
+User "1" o-- "*" AuthEventLog : "triggers"
+Admin <|-- User : "inherits"
+
+@enduml

@@ -1,0 +1,8 @@
+@startsalt
+scale 2
+{+
+  <&person> Email  | "MyName   "
+  <&key> Password  | "****     "
+  [<&circle-x> Cancel ] | [ <&account-login> OK   ]
+}
+@endsalt

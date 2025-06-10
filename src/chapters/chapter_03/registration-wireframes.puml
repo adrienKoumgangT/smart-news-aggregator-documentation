@@ -1,0 +1,13 @@
+@startsalt
+scale 2
+{+
+  <&person> First Name     | "Adrien                    "
+  <&person> Last Name      | "Koumgang                  "
+  <&email> Email           | "adrientkoumgang@gmail.com "
+  <&phone> Phone           | "+39 123 456 7890          "
+  <&key> Password          | "********                  "
+  <&key> Confirm Password  | "********                  "
+
+  [<&circle-x> Cancel]     | [<&account-plus> Register]
+}
+@endsalt

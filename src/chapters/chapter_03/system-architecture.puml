@@ -1,0 +1,54 @@
+@startuml
+' left to right direction
+
+' title System Architecture - Smart News Aggregator
+
+skinparam rectangle {
+  BackgroundColor #FDF6E3
+  BorderColor Black
+  Shadowing true
+}
+skinparam componentStyle rectangle
+
+actor User
+actor Admin
+
+rectangle "Frontend (React + TypeScript)" as FE {
+  component "Login\nDashboard\nFeed\nArticle View" as ReactUI
+}
+
+rectangle "Backend API (Flask + Flask-RESTX)" as BE {
+  component "Auth Endpoint" as Auth
+  component "User Endpoint" as UserAPI
+  component "Article Endpoint" as ArticleAPI
+  component "Admin Endpoint" as AdminAPI
+  component "BackgroundFetcher\n(Cron or Triggered)" as Fetcher
+}
+
+rectangle "Database" as DB {
+    database "MongoDB\n(Document DB)" as Mongo
+    database "Redis\n(Key-Value DB)" as Redis
+}
+
+
+
+cloud "External News APIs" as APIs
+
+User --> ReactUI : Uses
+Admin --> ReactUI : Manages
+
+ReactUI --> Auth : Login/Register
+ReactUI --> UserAPI : Manage profile/preferences
+ReactUI --> ArticleAPI : View articles, feed
+ReactUI --> AdminAPI : (Admin only)
+
+Auth --> Mongo : Read/Write Users
+UserAPI --> Mongo : Update preferences
+ArticleAPI --> Redis : Get cached articles
+ArticleAPI --> Mongo : Fallback if cache miss
+AdminAPI --> Mongo : Logs/Stats
+
+Fetcher --> APIs : Fetches articles
+Fetcher --> Mongo : Stores normalized data
+Fetcher --> Redis : Updates hot articles cache
+@enduml
