@@ -1,0 +1,199 @@
+%! Author = adrienkoumgangtegantchouang
+%! Date = 09/06/25
+
+
+\chapter{Deployment and Scaling}\label{ch:deployment-and-scaling}
+
+This chapter covers containerized deployment for the Smart News Aggregator.
+
+
+\section{Containerization with Docker}\label{sec:containerization-with-docker}
+
+
+\subsection{Core Services Setup}\label{subsec:core-services-setup}
+
+\begin{lstlisting}[style=bashstyle,label={lst:prometheus-configuration},caption={Prometheus Configuration (prometheus.yml)}]
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'smart-news-aggregator-api'
+    static_configs:
+      - targets: ['smart-news-aggregator-api:5050']
+      # - targets: ['localhost:5050']
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+
+  - job_name: 'mongodb'
+    static_configs:
+      - targets: ['mongodb-exporter:9216']
+\end{lstlisting}
+
+
+\begin{lstlisting}[style=bashstyle,label={lst:docker-compose-core-services},caption={Docker compose for core services (docker-compose.yml)}]
+services:
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - redis_backup:/backup
+    command: redis-server --save 60 1 --loglevel warning
+    restart: unless-stopped
+
+  redis-exporter:
+    image: oliver006/redis_exporter
+    ports:
+      - "9121:9121"
+    environment:
+      REDIS_ADDR: "redis://host.docker.internal:6379"
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_backup:/backup
+    platform: linux/arm64
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  mongodb-exporter:
+    image: bitnami/mongodb-exporter:0.40.0
+    ports:
+      - "9216:9216"
+    environment:
+      MONGODB_URI: "mongodb://host.docker.internal:27017"
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+volumes:
+  redis_data:
+  redis_backup:
+  mongodb_data:
+  mongodb_backup:
+  grafana_data:
+\end{lstlisting}
+
+
+\subsection{Backend Setup}\label{subsec:backend-setup}
+
+\begin{lstlisting}[style=bashstyle,label={lst:dockerfile-backend},caption={Dockerfile Backend (Production configuration)}]
+# Dockerfile.prod
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+ENV FLASK_APP=src/app.py
+ENV FLASK_ENV=production
+
+EXPOSE 5000
+
+# Use Gunicorn for production
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "src.app:application"]
+\end{lstlisting}
+
+\begin{lstlisting}[style=bashstyle,label={lst:docker-compose-backend},caption={Docker Compose Backend (docker-compose.yml)}]
+services:
+  smart-news-aggregator-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    ports:
+      - "5050:5000"
+    environment:
+      - FLASK_ENV=production
+      - FLASK_ENV_FILE=.env.prod
+    env_file:
+      - .env.prod
+\end{lstlisting}
+
+
+\subsection{Frontend Setup}\label{subsec:frontend-setup}
+
+\begin{lstlisting}[style=bashstyle,label={lst:dockerfile-frontend},caption={Dockerfile Frontend (Production configuration)}]
+# Stage 1: Build the Vite app
+FROM node:20 as builder
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+RUN npm run build
+
+# Stage 2: Serve with Nginx
+FROM nginx:stable-alpine
+
+# Copy the build output to Nginx web root
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Optional: custom nginx config for single-page app (SPA)
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
+\end{lstlisting}
+
+
+\begin{lstlisting}[style=bashstyle,label={lst:docker-compose-frontend},caption={Docker Compose Frontend (docker-compose.yml)}]
+services:
+  smart-news-aggregator-fe:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    ports:
+      - "3000:80" # host:container
+\end{lstlisting}
+
+
+\begin{lstlisting}[style=bashstyle,label={lst:},caption={ (.yml)}]
+
+\end{lstlisting}
+
+
+\section{Testing and Monitoring}\label{sec:testing-and-monitoring}
+
+To ensure the reliability and correctness of the platform, the services were thoroughly tested and monitored after deployment.
+All backend and frontend services were containerized using Docker, enabling isolated and consistent environments across development and production.
+
+Once deployed, the services were interacted with directly through the exposed endpoints to verify the correct execution of key functionalities such as authentication,
+article retrieval, comment posting, and admin operations (e.g., deleting users\cite{randomuser} or moderating content).
+API responses were validated, edge cases were tested, and rate limits were checked.
+
+Monitoring was achieved through an integrated dashboard, where metrics such as service uptime, API response times, error logs, and user activity were visualized.
+This allowed real-time observation of system behavior and rapid identification of anomalies or performance bottlenecks.
+Container logs were also inspected using docker logs and integration with monitoring tools like \textbf{Grafana} and \textbf{Prometheus}.
+
+
+

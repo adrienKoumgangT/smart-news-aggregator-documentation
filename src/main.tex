@@ -42,9 +42,6 @@
 %\usepackage{biblatex} % Imports biblatex package
 %\addbibresource{mybibliography.bib} % Import the bibliography file
 
-\usepackage{listings}
-% \usepackage{listings-rust}
-% \usepackage{rustlistings}
 \usepackage{xcolor} % Optional: for colored code
 \renewcommand{\lstlistingname}{Code}% Listing -> Codice\renewcommand{\lstlistingname}{Code}% Listing -> Codice
 
@@ -62,6 +59,164 @@
 \usepackage{mathtools}
 
 
+\usepackage{listings}
+
+\lstdefinestyle{javastyle}{
+    language=Java,
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{blue}\bfseries,
+    stringstyle=\color{red},
+    commentstyle=\color{gray}\itshape,
+    numberstyle=\tiny\color{gray},
+    backgroundcolor=\color{white},
+    numbers=left,
+    stepnumber=1,
+    numbersep=8pt,
+    tabsize=4,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    frame=single,
+    rulecolor=\color{black},
+    captionpos=b,
+    breaklines=true,
+    breakatwhitespace=true,
+    morekeywords={
+        String, MapReduce, Mapper, Reducer, Combiner,
+        Context, IOException, setup, cleanup,
+        Configuration, Job, Text, FileSplit
+    },
+    literate=
+        {<}{{\textless}}1
+        {>}{{\textgreater}}1
+        {==}{{==}}2
+        {!=}{{!=}}2
+        {->}{{$\rightarrow$}}2
+        {\{}{{\{}}1
+        {\}}{{\}}}1,
+    escapeinside={(*}{*)},
+    xleftmargin=15pt,
+    xrightmargin=5pt
+}
+
+% In your preamble (with the Java configuration)
+\lstdefinestyle{pythonstyle}{
+    language=Python,
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{blue}\bfseries,
+    stringstyle=\color{red},
+    commentstyle=\color{gray}\itshape,
+    numberstyle=\tiny\color{gray},
+    backgroundcolor=\color{white},
+    numbers=left,
+    stepnumber=1,
+    numbersep=8pt,
+    tabsize=4,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    frame=single,
+    rulecolor=\color{black},
+    captionpos=b,
+    breaklines=true,
+    breakatwhitespace=true,
+    morekeywords={
+        self, None, True, False, async, await,
+        lambda, yield, with, as, from, import
+    },
+    literate=
+        {<}{{\textless}}1
+        {>}{{\textgreater}}1
+        {\{}{{\{}}1
+        {\}}{{\}}}1
+        {*}{{\textasteriskcentered}}1
+        {/}{{\textbackslash}}1
+        {\~}{{\textasciitilde}}1,
+    escapeinside={(*}{*)},
+    xleftmargin=15pt,
+    xrightmargin=5pt,
+    alsoletter={@},  % For decorators
+    morecomment=[l]{\#},  % Proper single-line comments
+    morestring=[b]{"},  % Double quotes
+    morestring=[b]{'}   % Single quotes
+}
+
+
+\lstdefinestyle{bashstyle}{
+    language=bash,
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{blue}\bfseries,
+    stringstyle=\color{red},
+    commentstyle=\color{gray}\itshape,
+    numberstyle=\tiny\color{gray},
+    backgroundcolor=\color{white},
+    numbers=left,
+    stepnumber=1,
+    numbersep=8pt,
+    tabsize=4,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    frame=single,
+    rulecolor=\color{black},
+    captionpos=b,
+    breaklines=true,
+    breakatwhitespace=true,
+    morekeywords={
+        sudo, apt-get, docker, hadoop, python,
+        mkdir, cd, ls, grep, chmod, export
+    },
+    literate=
+        {\$}{{\textcolor{blue}{\$}}}1
+        {\#}{{\textcolor{gray}{\#}}}1
+        {>}{{\textcolor{red}{\textgreater}}}1
+        {|}{{\textcolor{blue}{\textbar}}}1
+        {~}{{\textcolor{blue}{\textasciitilde}}}1,
+    escapeinside={(*}{*)},
+    xleftmargin=15pt,
+    xrightmargin=5pt
+}
+
+
+\lstdefinestyle{makefilestyle}{
+    language=make,
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{blue}\bfseries,
+    stringstyle=\color{red},
+    commentstyle=\color{gray}\itshape,
+    numberstyle=\tiny\color{gray},
+    backgroundcolor=\color{white},
+    numbers=left,
+    stepnumber=1,
+    numbersep=8pt,
+    tabsize=4,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    frame=single,
+    rulecolor=\color{black},
+    captionpos=b,
+    breaklines=true,
+    breakatwhitespace=true,
+    morekeywords={
+        .PHONY, all, clean, install, test,
+        ifeq, ifneq, endif, include, export
+    },
+    literate=
+        {\$}{{\textcolor{blue}{\$}}}1
+        {\#}{{\textcolor{gray}{\#}}}1
+        {(}{{\textcolor{red}{(}}}1
+        {)}{{\textcolor{red}{)}}}1
+        {=}{{\textcolor{magenta}{=}}}1,
+    sensitive=false, % Make keywords case-insensitive
+    alsoletter={-}, % Allow hyphens in target names
+    escapeinside={(*}{*)},
+    xleftmargin=15pt,
+    xrightmargin=5pt,
+    moredelim=[s][\color{magenta}]{$(}{)} % Make variables stand out
+}
+
+
 
 % \usepackage{xcolor}
 \definecolor{codegreen}{rgb}{0,0.6,0}
@@ -76,34 +231,6 @@
 \definecolor{codekeywork3}{rgb}{0.82,0.56,0.43}
 % Define a custom style
 
-
-\lstdefinestyle{python}{
-    language=Python,                    % Set language to Python
-    basicstyle=\ttfamily\footnotesize,   % Basic font style for the code
-    keywordstyle=\color{blue}\bfseries,  % Style for keywords
-    stringstyle=\color{red},             % Style for strings
-    commentstyle=\color{gray}\itshape,   % Style for comments
-    numberstyle=\tiny\color{gray},       % Style for line numbers
-    backgroundcolor=\color{backcolour},   % choose the background color
-    numbers=left,                        % Show line numbers on the left
-    stepnumber=1,                        % Line numbers every 1 line
-    numbersep=8pt,                       % Space between line numbers and code
-    tabsize=4,                           % Width of a tab
-    showspaces=false,                    % Don't show spaces
-    showstringspaces=false,              % Don't show spaces in strings
-    showtabs=false,                      % Don't show tab characters
-    frame=single,                        % Add a frame around the code
-    rulecolor=\color{black},             % Frame color
-    captionpos=b,                        % Position of caption (bottom)
-    breaklines=true,                     % Automatically break long lines
-    breakatwhitespace=true,              % Allow breaking at whitespace
-    backgroundcolor=\color{white},       % Set background color
-    morekeywords={self, None, True, False}, % Additional Python-specific keywords
-    % escapeinside={(*@}{@*)},             % Escape inside code
-    alsoother={\<},
-    alsoother={\>},
-    literate={\<}{{\textless}}1 {\>}{{\textgreater}}1, % Handle < and > symbols
-}
 
 \definecolor{jsonbackground}{RGB}{245,245,244}
 \definecolor{jsonstring}{RGB}{173,0,0}
@@ -147,6 +274,8 @@
 \newtheorem{mypc}{Pseudocode}
 
 
+\usepackage{tabularx}
+
 
 \begin{document}
     \input{frontespizio}
@@ -169,8 +298,23 @@
 % System Design
     \include{chapters/chapter_03/System_Design}
 
+% Data Modeling
+    \include{chapters/chapter_04/Data_Modeling}
+
+% Data Ingestion and Intetration
+    \include{chapters/chapter_05/Data_Ingestion_and_Integration}
+
+% Backend Implementation
+    \include{chapters/chapter_06/Backend_Implementation}
+
+% Advanced Aggregations and Analytics
+    \include{chapters/chapter_07/Advanced_Aggregations_and_analytics}
+
+% Deployment and Testing
+    \include{chapters/chapter_08/Deployment_and_Testing}
+
 % Conclusion
-    % \include{chapters/chapter_07}
+    \include{chapters/chapter_09/Conclusion}
 
 
     \bibliographystyle{splncs03}

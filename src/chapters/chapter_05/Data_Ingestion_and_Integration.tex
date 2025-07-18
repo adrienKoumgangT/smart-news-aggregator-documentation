@@ -1,0 +1,68 @@
+%! Author = adrienkoumgangtegantchouang
+%! Date = 09/06/25
+
+\chapter{Data Ingestion and Integration}\label{ch:data-ingestion-and-integration}
+
+
+The \textbf{Smart News Aggregator} relies on real-time and scheduled data ingestion from multiple external news APIs.
+This chapter details the data pipeline architecture, API integration strategies, preprocessing steps,
+and error handling mechanisms to ensure a consistent and reliable flow of news articles into the system.
+
+
+\section{External API Integration}\label{sec:external-api-integration}
+
+
+The system integrates with the following news providers:
+
+\begin{table}[h!]
+  \centering
+  \begin{tabular}{|l|l|l|c|}
+    \hline
+    API & Description & Rate Limits & Data Format \\
+    \hline
+    \textbf{MediaStack} & News articles from 7,500+ sources & 500 requests/month & JSON \\
+    \textbf{CurrentsApi} & - & x requests/month & JSON \\
+    \textbf{Gnews} & - & x requests/month & JSON \\
+    \textbf{MarketAux} & - & x requests/month & JSON \\
+    \textbf{NYTimes} & Premium news content & 4000 requests/month & JSON \\
+    \textbf{News Api} & - & x requests/month & JSON \\
+    \textbf{News Data} & Global news coverage & 100 requests/month & JSON \\
+    \textbf{Space Flight News Api} & - & x requests/month & JSON \\
+    \textbf{The Guardian} & High-quality journalism & 5,000 requests/month & JSON \\
+    \hline
+  \end{tabular}
+  \caption{External Api Integration}
+  \label{tab:external-api-integration}
+\end{table}
+
+
+Each API uses API keys stored securely in environment variables.
+Scheduled cron job triggers API calls every monday at 00:00.
+Requests are made via requests.
+Response Handling: On success, Normalize and store in MongoDB. On failure, Log error, retry with backoff (max 3 attempts).
+
+
+\section{Data Processing}\label{sec:data-processing}
+
+
+\subsection{Data Validation}\label{subsec:data-validation}
+
+\begin{itemize}
+    \item \textbf{Duplicate Detection}: checks $external id$ and mongodb index $\{ external\_api: 1, external\_id: 1, title: 1 \}$ (Compound, Unique)
+    \item \textbf{Schema Validation}: Ensures required field ($title$, $url$ $published\_at$)
+\end{itemize}
+
+\subsection{Data Normalization}\label{subsec:data-normalization}
+
+\textbf{Standardized Schema}
+
+
+\section{Error Handling and Logging}\label{sec:error-handling-and-logging}
+
+
+For error type is \textbf{rate limit exceeded}, retry the next week.
+For \textbf{network failure}, exponential backoff (max 3 retries).
+And for \textbf{malformed data}, skips invalid entries.
+
+
+

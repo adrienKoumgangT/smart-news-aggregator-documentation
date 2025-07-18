@@ -1,0 +1,499 @@
+%! Author = adrienkoumgangtegantchouang
+%! Date = 09/06/25
+
+\chapter{Advanced Aggregations and Analytics}\label{ch:advanced-aggregations-and-analytics}
+
+
+\section{MongoDB Aggregation Framework}\label{sec:mongodb-aggregation-framework}
+
+
+\subsection{Key Aggregation Concepts}\label{subsec:key-aggregation-concepts}
+
+\begin{itemize}
+    \item \textbf{Pipeline Stages}: Filter ($\$match$), Group ($\$group$), Sort ($\$sort$), Project ($\$project$)
+    \item \textbf{Operators}: $\$sum$, $\$avg$, $\$max$, $\$arrayElementAt$, $\$cond$
+    \item \textbf{Performance}: Uses indexes, optimized for large datasets
+\end{itemize}
+
+
+\subsection{Pipeline: All tags}\label{subsec:pipeline:-all-tags}
+
+\begin{lstlisting}[style=pythonstyle,label={lst:pipeline:-all-tags},caption={Pipeline All Tags}]
+class ArticleModel(ArticleSummaryModel):
+    @classmethod
+    def get_all_tags(cls, user_token, search: str = None):
+        tags = cls._get_all_tags()
+        if tags:
+            return tags
+
+        api_logger = ApiLogger(f"[MONGODB] [ARTICLE TAGS] [GET ALL] : search = {search}")
+        if search:
+            pipeline = [
+                {"$unwind": "$tags"},
+                {"$match": {"tags": {"$regex": f"^{search}", "$options": "i"}}},
+                {"$group": {"_id": None, "matchedTags": {"$addToSet": "$tags"}}},
+                {"$project": {"_id": 0, "matchedTags": 1}}
+            ]
+        else:
+            pipeline = [
+                {"$unwind": "$tags"},
+                {"$group": {"_id": None, "matchedTags": {"$addToSet": "$tags"}}},
+                {"$project": {"_id": 0, "matchedTags": 1}}
+            ]
+
+        with MONGO_QUERY_TIME.time():
+            data = cls.collection().aggregate(pipeline)
+
+        result = list(data)
+        tags = result[0]['matchedTags'] if result else []
+
+        api_logger.print_log()
+
+        cls._cache_all_tags(tags)
+
+        return tags
+\end{lstlisting}
+
+
+\subsection{Pipeline: Search Articles}\label{subsec:pipeline:-search-articles}
+
+\begin{lstlisting}[style=pythonstyle,label={lst:pipeline-search-articles},caption={Pipeline search articles}]
+class ArticleSearchModel(DataBaseModel):
+    @classmethod
+    def search_articles(cls, user_token: UserToken, query: str, page: int = 1, limit: int = 10):
+        if not query:
+            return ArticleModel.last_articles(user_token, page=page, limit=limit)
+
+        api_logger = ApiLogger(f"[MONGODB] [ARTICLE LATEST] [GET] : query={query}, page={page} and limit={limit}")
+
+        pipeline = [
+            {
+                "$match": {
+                    "$text": {
+                        "$search": query,
+                        # "$language": "english"
+                    }
+                }
+            },
+            {
+                "$project": {
+                    'article_id': '$_id',
+                    'extern_api': 1,
+                    'extern_id': 1,
+                    "title": 1,
+                    "description": 1,
+                    'source': 1,
+                    'author': 1,
+                    "score": {"$meta": "textScore"},
+                    "published_at": 1
+                }
+            },
+            {
+                "$sort": {"score": -1, "published_at": -1}  # Relevance + recency
+            },
+            {
+                "$skip": (page - 1) * limit
+            },
+            {
+                "$limit": limit
+            }
+        ]
+
+        with MONGO_QUERY_TIME.time():
+            results = ArticleModel.collection().aggregate(pipeline)
+
+        if results is None:
+            api_logger.print_error("Error occurred during article search")
+            return []
+
+        api_logger.print_log()
+        return [cls(**result) for result in list(results)]
+\end{lstlisting}
+
+
+\subsection{Pipeline: Article Stats Comment}\label{subsec:pipeline:-article-stats-comment}
+
+\begin{lstlisting}[style=pythonstyle,label={lst:pipeline-article-stats-comment},caption={Pipeline Article Stats Comment}]
+class ArticleCommentStats(DataBaseModel):
+    @classmethod
+    def get_stats(cls, article_id: str, comment_id: str = None):
+        stats_list = cls._get_stats(article_id, comment_id)
+        if stats_list is not None:
+            return stats_list
+
+        api_logger = ApiLogger(f"[MONGODB] [ARTICLE] [MOST COMMENT] : article={article_id} and comment={comment_id}")
+
+        pipeline = [
+            {
+                '$addFields': {
+                    'articleObjectId': { '$toObjectId': '$article_id' }
+                }
+            }, {
+                '$group': {
+                    '_id': '$articleObjectId',
+                    'comment_count': { '$sum': 1 }
+                }
+            }, {
+                '$sort': {
+                    'comment_count': -1
+                }
+            }, {
+                '$limit': 10
+            }, {
+                '$lookup': {
+                    'from': 'articles',
+                    'localField': '_id',
+                    'foreignField': '_id',
+                    'as': 'article'
+                }
+            }, {
+                '$unwind': '$article'
+            }, {
+                '$project': {
+                    'article_id': '$_id',
+                    'extern_api': '$article.extern_api',
+                    'title': '$article.title',
+                    'source': '$article.source',
+                    'author': '$article.author',
+                    'published_at': '$article.published_at',
+                    'comment_count': 1,
+                    '_id': 0
+                }
+            }
+        ]
+
+        with MONGO_QUERY_TIME.time():
+            stats = CommentModel.collection().aggregate(pipeline)
+        if stats is None:
+            api_logger.print_error("Error during retrieving statistics")
+            return []
+        api_logger.print_log()
+        stats_list = [cls(**stat) for stat in list(stats)]
+
+        cls._cache(stats_list, article_id, comment_id)
+
+        return stats_list
+\end{lstlisting}
+
+
+\subsection{Pipeline User Comments with article}\label{subsec:pipeline-user-comments-with-article}
+
+\begin{lstlisting}[style=pythonstyle,label={lst:pipeline-user-comments-with-article},caption={Pipeline User Comments with article}]
+class CommentDetailsModel(CommentModel):
+    @classmethod
+    def get_user_comments_with_article(cls, user_token: UserToken, user_id: str = None, page: int = 1, limit: int = 10):
+        extra_filter = {}
+
+        if user_id is None:
+            user_id = str(user_token.user_id)
+
+        pipeline = [
+            {
+                "$match": {
+                    "user_id": user_id
+                }
+            },
+            {
+                "$sort": {
+                    "created_at": -1
+                }
+            },
+            {
+                "$skip": (page - 1) * limit
+            },
+            {
+                "$limit": limit
+            },
+            {
+                "$addFields": {
+                    "article_id_obj": {
+                        "$toObjectId": "$article_id"  # Convert string to ObjectId
+                    }
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "articles",
+                    "localField": "article_id_obj",
+                    "foreignField": "_id",
+                    "as": "article"
+                }
+            },
+            {
+                "$unwind": "$article"
+            },
+            {
+                "$project": {
+                    "_id": 1,
+                    "user_id": 1,
+                    "author": 1,
+                    "article_id": 1,
+                    "comment_fk": 1,
+                    "content": 1,
+                    "created_at": 1,
+                    "updated_at": 1,
+                    "article_info": {
+                        "extern_api": "$article.extern_api",
+                        "title": "$article.title",
+                        "description": "$article.description",
+                        "author": "$article.author",
+                        "source": "$article.source",
+                        "published_at": "$article.published_at"
+                    }
+                }
+            }
+        ]
+
+        api_logger = ApiLogger(f"[MONGODB] [COMMENT] [GET BY USER] : user_id={user_id}, page={page} and limit={limit}")
+
+        with MONGO_QUERY_TIME.time():
+            results = cls.collection().aggregate(pipeline)
+
+        api_logger.print_log()
+
+        if results:
+            return [cls(**result) for result in results]
+        return []
+\end{lstlisting}
+
+
+\subsection{Pipeline User Article Interaction by article}\label{subsec:pipeline-user-article-interaction-by-article}
+
+\begin{lstlisting}[style=pythonstyle,label={lst:pipeline-user-article-interaction-by-article},caption={Pipeline User Article Interaction by article}]
+class ArticleInteractionStats(DataBaseModel):
+    @classmethod
+    def get_stats(cls, article_id: str, comment_id: str = None):
+        api_logger = ApiLogger(f"[MONGODB] [USER ARTICLE INTERACTION] [GET STAT] : article={article_id} and comment={comment_id}")
+
+        match = {"article_id": article_id} | ({"comment_id": comment_id} if comment_id else {})
+        pipeline = [
+            {"$match": match},
+            {
+                "$group": {
+                    "_id": "$article_id",
+                    "liked": {"$sum": {"$cond": ["$liked", 1, 0]}},
+                    "saved": {"$sum": {"$cond": ["$saved", 1, 0]}},
+                    "shared": {"$sum": {"$cond": ["$shared", 1, 0]}},
+                    "report": {"$sum": {"$cond": ["$report", 1, 0]}}
+                }
+            }
+        ]
+
+        with MONGO_QUERY_TIME.time():
+            stats = cls.collection().aggregate(pipeline)
+        if stats is None:
+            api_logger.print_error("Error during retrieving statistics")
+            return ArticleInteractionStats()
+        api_logger.print_log()
+        stats_list = list(stats)
+        if stats_list:
+            return ArticleInteractionStats(
+                liked=stats_list[0]["liked"],
+                saved=stats_list[0]["saved"],
+                shared=stats_list[0]["shared"],
+                report=stats_list[0]["report"],
+            )
+        return ArticleInteractionStats()
+\end{lstlisting}
+
+
+\subsection{Pipeline Most Interacted Articles}\label{subsec:pipeline-most-interacted-articles}
+
+\begin{lstlisting}[style=pythonstyle,label={lst:pipeline-most-interacted-articles},caption={Pipeline Most Interacted Articles}]
+class ArticleInteractionDashboard(DataBaseModel):
+    @classmethod
+    def get_most_interacted_articles(cls, date_check = None):
+        api_logger = ApiLogger(f"[MONGODB] [USER ARTICLE INTERACTION] [DASHBOARD] [MOST INTERACTED ARTICLES] ")
+
+        if date_check:
+            pipeline = [
+                {
+                    '$match': {
+                        'updated_at': {'$gte': date_check}
+                    }
+                }, {
+                    '$addFields': {
+                        'articleObjectId': {'$toObjectId': '$article_id'}
+                    }
+                }, {
+                    '$group': {
+                        '_id': '$articleObjectId',
+                        'read_count': {'$sum': {'$cond': [{'$ifNull': ['$read_at', False]}, 1, 0]}},
+                        'like_count': {'$sum': {'$cond': ['$liked', 1, 0]}},
+                        'save_count': {'$sum': {'$cond': ['$saved', 1, 0]}},
+                        'share_count': {'$sum': {'$cond': ['$shared', 1, 0]}}
+                    }
+                }, {
+                    '$addFields': {
+                        'total_interactions': {
+                            '$add': ['$read_count', '$like_count', '$save_count', '$share_count']
+                        }
+                    }
+                }, {
+                    '$sort': {
+                        'total_interactions': -1
+                    }
+                }, {
+                    '$limit': 5
+                }, {
+                    '$lookup': {
+                        'from': 'articles',
+                        'localField': '_id',
+                        'foreignField': '_id',
+                        'as': 'article'
+                    }
+                }, {
+                    '$unwind': '$article'
+                }, {
+                    '$project': {
+                        'article_id': '$_id',
+                        'extern_api': '$article.extern_api',
+                        'title': '$article.title',
+                        'published_at': '$article.published_at',
+                        'author': '$article.author',
+                        'source': '$article.source',
+                        'total_interactions': 1,
+                        'read_count': 1,
+                        'like_count': 1,
+                        'save_count': 1,
+                        'share_count': 1,
+                        '_id': 0
+                    }
+                }
+            ]
+        else:
+            pipeline = [
+                {
+                    '$addFields': {
+                        'articleObjectId': {'$toObjectId': '$article_id'}
+                    }
+                }, {
+                    '$group': {
+                        '_id': '$articleObjectId',
+                        'read_count': {'$sum': {'$cond': [{'$ifNull': ['$read_at', False]}, 1, 0]}},
+                        'like_count': {'$sum': {'$cond': ['$liked', 1, 0]}},
+                        'save_count': {'$sum': {'$cond': ['$saved', 1, 0]}},
+                        'share_count': {'$sum': {'$cond': ['$shared', 1, 0]}}
+                    }
+                }, {
+                    '$addFields': {
+                        'total_interactions': {'$add': ['$read_count', '$like_count', '$save_count', '$share_count']}
+                    }
+                }, {
+                    '$sort': {
+                        'total_interactions': -1
+                    }
+                }, {
+                    '$limit': 5
+                }, {
+                    '$lookup': {
+                        'from': 'articles',
+                        'localField': '_id',
+                        'foreignField': '_id',
+                        'as': 'article'
+                    }
+                }, {
+                    '$unwind': '$article'
+                }, {
+                    '$project': {
+                        'article_id': '$_id',
+                        'extern_api': '$article.extern_api',
+                        'title': '$article.title',
+                        'published_at': '$article.published_at',
+                        'author': '$article.author',
+                        'source': '$article.source',
+                        'total_interactions': 1,
+                        'read_count': 1,
+                        'like_count': 1,
+                        'save_count': 1,
+                        'share_count': 1,
+                        '_id': 0
+                    }
+                }
+            ]
+
+        with MONGO_QUERY_TIME.time():
+            stats = UserArticleInteractionModel.collection().aggregate(pipeline)
+        if stats is None:
+            api_logger.print_error("Error during retrieving statistics")
+
+        stat_list = list(stats)
+        api_logger.print_log()
+        # print(stat_list)
+
+        for stat in stat_list:
+            stat['article_id'] = str(stat['article_id'])
+
+        return [cls(**data) for data in stat_list]
+\end{lstlisting}
+
+
+\subsection{Pipeline User Preferences Most Used Tags}\label{subsec:pipeline-user-preferences-most-used-tags}
+
+\begin{lstlisting}[style=pythonstyle,label={lst:pipeline-user-preferences-most-used-tags},caption={Pipeline User Preferences Most Used Tags}]
+class UserPreferencesDashboard(DataBaseModel):
+    @classmethod
+    def get_most_tags(cls, limit: int = 5):
+        api_logger = ApiLogger(f"[MONGODB] [USER TAGS] [DASHBOARD] [MOST TAGS IN PREFERENCES] : limit={limit}")
+
+        pipeline = [
+            {
+                '$match': {
+                    'preferences': {'$exists': True, '$ne': []}
+                }
+            }, {
+                '$unwind': '$preferences'
+            }, {
+                '$group': {
+                    '_id': '$preferences',
+                    'count': {'$sum': 1}
+                }
+            }, {
+                '$sort': {
+                    'count': -1
+                }
+            }, {
+                '$limit': limit
+            }, {
+                '$project': {
+                    'tag': '$_id',
+                    'count': 1,
+                    '_id': 0
+                }
+            }
+        ]
+
+        with MONGO_QUERY_TIME.time():
+            stats = cls.collection().aggregate(pipeline)
+        if stats is None:
+            api_logger.print_error("Error during retrieving statistics")
+
+        stat_list = list(stats)
+        api_logger.print_log()
+
+        return [cls(**data) for data in stat_list]
+\end{lstlisting}
+
+
+\section{Performance Optimization}\label{sec:performance-optimization}
+
+To optimize these aggregation operations, different indexes have been drawn and the aggregation results cached for an average of 1 hour.
+
+
+\begin{itemize}
+    \item \textbf{All Tags}\ref{lst:pipeline:-all-tags}: $\{ tags: 1 \}$ (1 hour)
+    \item \textbf{Search Articles}\ref{lst:pipeline-search-articles}: $\{ title: "text" \}$, $\{ description: "text" \}$ and $\{ title: "text", description: "text" \}$
+    \item \textbf{Article Stats Comment}\ref{lst:pipeline-article-stats-comment}: $\{ article\_id: 1 \}$ (10 minutes)
+    \item \textbf{User Comments with article}\ref{lst:pipeline-user-comments-with-article}: $\{ user\_id: 1 \}$ and $\{ user\_id: 1, created\_at: -1 \}$
+    \item \textbf{User Article Interaction by article}\ref{lst:pipeline-user-article-interaction-by-article}: $\{ article\_id: 1 \}$
+    \item \textbf{Most Interacted Articles}\ref{lst:pipeline-most-interacted-articles}: $\{ article\_id: 1 \}$ and $\{ article\_id: 1,  updated\_at: -1\}$
+    \item \textbf{User Preferences Most Used Tags}\ref{lst:pipeline-user-preferences-most-used-tags}: $\{ preferences: 1 \}$
+\end{itemize}
+
+
+
+
+
+
+
+

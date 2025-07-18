@@ -17,7 +17,7 @@ It integrates multiple technologies:
 \subsection{Key Components}\label{subsec:key-components}
 
 \begin{itemize}
-    \item \textbf{Frontend (React + TypeScript)}: Handles UI, user interaction, API communication and Token-based authentication.
+    \item \textbf{Frontend (React\cite{react, vite} + TypeScript)}: Handles UI, user interaction, API communication and Token-based authentication.
     \item \textbf{Backend (Flask + Flask-RESTX)}: RESTful API with Blueprint organization, JWT authentication with RS256 and Logging and error handling.
     \item \textbf{Document Database (MongoDB)}: Stores user profiles, articles, comments, and logs.
     Supports complex queries and aggregation pipelines.
@@ -41,8 +41,8 @@ The architecture is divided into four layers:
 \begin{figure}[!h]
     \centering
     \includegraphics[width=1.1\textwidth]{chapters/chapter_03/system-architecture-smart-news-aggregator}
-    \caption{Use Case Diagram: Systen}
-    \label{fig:use-case-diagram-system}
+    \caption{System Architecture}
+    \label{fig:system-architecture-diagram}
 \end{figure}
 
 \subsection{Client Layer (Frontend)}\label{subsec:client-layer-frontend}
@@ -92,141 +92,151 @@ Administrators can monitor platform activity and user engagement via metrics obt
 \end{figure}
 
 
-\section{Database Modeling}\label{sec:database-modeling}
-
-\subsection{Document-Oriented Schema (MongoDB)}\label{subsec:document-oriented-schema-mongodb}
-
-
-MongoDB stores structured documents for core domain entities.
-Each entity is represented as a collection with JSON-like documents.
-The key collections are:
-
-\begin{itemize}
-    \item Users Collection
-\end{itemize}
-
-\begin{lstlisting}[language=json]
-{
-  "_id": ObjectId,
-  "email": "user@example.com",
-  "password": "hashed_password",
-  "first_name": "Alice",
-  "last_name": "Smith",
-  "created_at": ISODate,
-  "preferences": {
-    "categories": ["technology", "sports"],
-    "languages": ["en"],
-    "sources": ["NYTimes", "Guardian"]
-  }
-}
-\end{lstlisting}
-
-
-\begin{itemize}
-    \item Articles Collection
-\end{itemize}
-
-\begin{lstlisting}[language=json]
-{
-  "_id": ObjectId,
-  "extern_id": "nyt-123456",
-  "title": "Breaking News",
-  "content": "Full article content...",
-  "author": "Journalist Name",
-  "source": "NYTimes",
-  "url": "https://...",
-  "image_url": "https://...",
-  "published_at": ISODate,
-  "category": "technology",
-  "language": "en",
-  "country": "us"
-}
-\end{lstlisting}
-
-\begin{itemize}
-    \item User Articles Interactions Collection
-\end{itemize}
-
-\begin{lstlisting}[language=json]
-{
-  "_id": ObjectId,
-  "user_id": ObjectId,
-  "article_id": ObjectId,
-  "read_at": ISODate,
-  "time_spent": 120,
-  "liked": true,
-  "shared": false,
-  "saved": false,
-  "feedback": "Interesting article on AI trends."
-}
-\end{lstlisting}
-
-\begin{itemize}
-    \item Comments Collection
-\end{itemize}
-
-\begin{lstlisting}[language=json]
-{
-  "_id": ObjectId,
-  "user_id": ObjectId,
-  "article_id": ObjectId,
-  "content": "This article was really informative.",
-  "created_at": ISODate,
-  "replies": [
-    {
-      "user_id": ObjectId,
-      "content": "I agree!",
-      "created_at": ISODate
-    }
-  ]
-}
-\end{lstlisting}
-
-\begin{itemize}
-    \item Logs Collection
-\end{itemize}
-
-\begin{lstlisting}[language=json]
-{
-  "_id": ObjectId,
-  "event": "login",
-  "user_id": ObjectId,
-  "is_success": true,
-  "request_data": {
-    "method": "POST",
-    "url": "/api/auth/login",
-    "headers": { ... },
-    "body": { ... }
-  },
-  "message": "Login successful!",
-  "created_at": ISODate
-}
-\end{lstlisting}
-
-
-\subsection{Key-Value Cache (Redis)}\label{subsec:key-value-cache-redis}
-
 
 
 \section{UI Wireframes and Mockups}\label{sec:ui-wireframes-and-mockups}
 
 \subsection{Authentication Screens}\label{subsec:authentication-screens}
 
+For registered new user and login:
+
 \begin{figure}[!h]
     \centering
-    \includegraphics[width=0.7\textwidth]{chapters/chapter_03/login-wireframes}
-    \caption{Use Case Diagram: Systen}
-    \label{fig:login-wireframes}
+    \begin{minipage}{0.48\linewidth}
+        \centering
+        \includegraphics[width=1\textwidth]{chapters/chapter_03/page/auth/register-page}
+        \caption{Authentication screens: registration page}
+        \label{fig:registration-wireframes}
+    \end{minipage}
+    \hfil
+    \begin{minipage}{0.48\linewidth}
+        \centering
+        \includegraphics[width=1\textwidth]{chapters/chapter_03/page/auth/login-page}
+        \caption{Authentication screens: login page}
+        \label{fig:login-wireframes}
+    \end{minipage}
+\end{figure}
+
+
+\subsection{User Screens}\label{subsec:user-screens}
+
+For see user all user information.
+It's not possible for user with role "user" to modify status and role.
+
+\begin{figure}[!h]
+    \centering
+    \begin{minipage}{0.48\linewidth}
+        \centering
+        \includegraphics[width=0.8\textwidth]{chapters/chapter_03/page/user/profile-page}
+        \caption{User screens: profile page}
+        \label{fig:profile-wireframes}
+    \end{minipage}
+    \hfil
+    \begin{minipage}{0.48\linewidth}
+        \centering
+        \includegraphics[width=1.2\textwidth]{chapters/chapter_03/page/user/settings-page}
+        \caption{User screens: settings page}
+        \label{fig:settings-wireframes}
+    \end{minipage}
+\end{figure}
+
+
+\begin{figure}[!h]
+    \centering
+    \begin{minipage}{0.48\linewidth}
+        \centering
+        \includegraphics[width=1\textwidth]{chapters/chapter_03/page/user/latest-page}
+        \caption{User screens: latest page}
+        \label{fig:latest-wireframes}
+    \end{minipage}
+    \hfil
+    \begin{minipage}{0.48\linewidth}
+        \centering
+        \includegraphics[width=1\textwidth]{chapters/chapter_03/page/user/search-page}
+        \caption{User screens: Search page}
+        \label{fig:search-wireframes}
+    \end{minipage}
+\end{figure}
+
+
+\begin{figure}[!h]
+    \centering
+    \begin{minipage}{0.48\linewidth}
+        \centering
+        \includegraphics[width=1\textwidth]{chapters/chapter_03/page/user/history-page}
+        \caption{User screens: History page}
+        \label{fig:history-wireframes}
+    \end{minipage}
+    \hfil
+    \begin{minipage}{0.48\linewidth}
+        \centering
+        \includegraphics[width=1\textwidth]{chapters/chapter_03/page/user/comments-page}
+        \caption{User screens: Comments page}
+        \label{fig:comments-wireframes}
+    \end{minipage}
+\end{figure}
+
+
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=0.7\textwidth]{chapters/chapter_03/page/user/article-details-page}
+    \caption{User screens: articles details page}
+    \label{fig:articles-details-wireframes}
+\end{figure}
+
+
+\subsection{Admin Screens}\label{subsec:admin-screens}
+
+\begin{figure}[!h]
+    \centering
+    \begin{minipage}{0.48\linewidth}
+        \centering
+        \includegraphics[width=1\textwidth]{chapters/chapter_03/page/admin/admin-dashboard-page}
+        \caption{Admin screens: admin dashboard page}
+        \label{fig:admin-dashboard-wireframes}
+    \end{minipage}
+    \hfil
+    \begin{minipage}{0.48\linewidth}
+        \centering
+        \includegraphics[width=1\textwidth]{chapters/chapter_03/page/admin/admin-dashboard-page-2}
+        \caption{Admin screens: admin dashboard page}
+        \label{fig:admin-dashboard-2-wireframes}
+    \end{minipage}
+\end{figure}
+
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=0.7\textwidth]{chapters/chapter_03/page/admin/admin-articles-page}
+    \caption{Admin screens: admin articles page}
+    \label{fig:admin-articles-wireframes}
 \end{figure}
 
 \begin{figure}[!h]
     \centering
-    \includegraphics[width=0.7\textwidth]{chapters/chapter_03/registration-wireframes}
-    \caption{Use Case Diagram: Systen}
-    \label{fig:login-wireframes}
+    \begin{minipage}{0.48\linewidth}
+        \centering
+        \includegraphics[width=1\textwidth]{chapters/chapter_03/page/admin/admin-users-page}
+        \caption{Admin screens: admin users page}
+        \label{fig:admin-users-wireframes}
+    \end{minipage}
+    \hfil
+    \begin{minipage}{0.48\linewidth}
+        \centering
+        \includegraphics[width=1\textwidth]{chapters/chapter_03/page/admin/admin-user-details-page}
+        \caption{Admin screens: admin user details page}
+        \label{fig:admin-user-details-wireframes}
+    \end{minipage}
 \end{figure}
 
 
-\subsection{Article Feed View}\label{subsec:article-feed-view}
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=0.7\textwidth]{chapters/chapter_03/page/admin/admin-error-logs-page}
+    \caption{Admin screens: admin error logs page}
+    \label{fig:admin-error-logs-wireframes}
+\end{figure}
+
 
 

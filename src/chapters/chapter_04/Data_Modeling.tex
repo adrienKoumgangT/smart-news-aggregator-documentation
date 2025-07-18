@@ -1,0 +1,298 @@
+%! Author = adrienkoumgangtegantchouang
+%! Date = 09/06/25
+
+\chapter{Data Modeling}\label{ch:data-modeling}
+
+In designing the project, I employed a \textbf{hybrid data modeling strategy} that combines both \textbf{relational}
+and \textbf{NoSQL (document-based and key-value)} approaches to balance data consistency, flexibility, and performance at scale.
+
+\section{Databases Technologies Used}\label{sec:databases-technologies-used}
+
+\begin{itemize}
+    \item \textbf{MongoDB (Document Database, version 6.0)}: Used for modeling core entities like user, articles, comments, user interactions and logs.
+    \item \textbf{Redis (Key-Value Store, version 7.0)}: Used for caching.
+\end{itemize}
+
+\section{MongoDB Data Models}\label{sec:mongodb-data-models}
+
+MongoDB is used as the primary \textbf{document database} to store structured yet flexible data such as users, articles, comment, interactions and errors server.
+Its schema-less nature and native support for nested documents make it suitable for dynamic content and high-volume ingestion\cite{pydantic}.
+
+MongoDB stores structured documents for core domain entities.
+Each entity is represented as a collection with JSON-like documents.
+The key collections are:
+
+\subsection{Users collection}\label{subsec:users-collection}
+
+
+\begin{lstlisting}[language=json,label={lst:users-collection-json-example}]
+{
+  "_id": {
+    "$oid": "683c758466d99ae51f0508d4"
+  },
+  "created_at": {
+    "$date": "2025-06-01T15:45:08.196Z"
+  },
+  "updated_at": {
+    "$date": "2025-06-21T03:25:04.294Z"
+  },
+  "firstname": "Adrien",
+  "lastname": "K. T.",
+  "email": "adrientkoumgang@gmail.com",
+  "password": "$2b$12$tSDjoy8m4IMBS6T/As5zveHctHxvkUmaslrONegD4kRPpkgPARlJK",
+  "account": {
+    "status": "active",
+    "role": "user"
+  },
+  "password_history": [
+    {
+      "password": "$2b$12$guC9jr36y2MEW50le9S4wOdKbZsVnmRrXAvk5S2IMJ4QSkJSTaG5e",
+      "created_at": {
+        "$date": "2025-06-01T15:45:08.196Z"
+      }
+    },
+    {
+      "password": "$2b$12$tSDjoy8m4IMBS6T/As5zveHctHxvkUmaslrONegD4kRPpkgPARlJK",
+      "created_at": {
+        "$date": "2025-06-05T20:51:45.379Z"
+      }
+    }
+  ],
+  "preferences_enable": true,
+  "preferences": [
+    "ai",
+    "technology",
+    "science"
+  ],
+  "address": {
+    "street": "via Giovanni Berchet, 4-112",
+    "city": "San Giuliano Terme",
+    "state": "PI",
+    "zip": "56017",
+    "country": "Italy"
+  }
+}
+\end{lstlisting}
+
+\textbf{Indexes:}
+
+\begin{enumerate}
+  \item $\{ email: 1 \}$ (Unique) : Email indexes enables fast login lookups and registration check.
+  \item $\{ preferences: 1 \}$ (Multikey) : Preferences index accelerates personalized feed generation.
+\end{enumerate}
+
+
+\subsection{Article log requests collection}\label{subsec:article-log-requests-collection}
+
+\begin{lstlisting}[language=json,label={lst:article-log-requests-collection-json-example}]
+{
+  "_id": {
+    "$oid": "68402a68a26f0389a8c4ed9e"
+  },
+  "created_at": {
+    "$date": "2025-06-04T11:13:44.758Z"
+  },
+  "updated_at": {
+    "$date": "2025-06-04T11:13:44.758Z"
+  },
+  "source": "CurrentsAPI",
+  "url": "https://api.currentsapi.services/v1/latest-news",
+  "request": {
+    "url": "https://api.currentsapi.services/v1/latest-news",
+    "headers": {
+      "Authorization": "97ueDaaD6tgJItwJhzKGqd1FYoXm3xZ6H3-lAxKXloZmRYdm"
+    },
+    "params": {}
+  },
+  "response": {
+    "status_code": 200,
+    "returned": 30
+  },
+  "fetched_count": 30
+}
+\end{lstlisting}
+
+\textbf{Indexes:}
+
+\begin{enumerate}
+  \item $\{ created\_at: -1, source: 1 \}$ (Compound): optimize time-based queries filtered by API source.
+    Monitoring recent API fetch operations by provider.
+  \item $\{ response.status\_code: -1 \}$ : quickly identify failed requests for error monitoring and alerting.
+\end{enumerate}
+
+
+\subsection{Articles collection}\label{subsec:articles-collection}
+
+
+\begin{lstlisting}[language=json,label={lst:articles-collection-json-example}]
+{
+  "_id": {
+    "$oid": "6840d72e34b1dd6ef4c87b05"
+  },
+  "created_at": {
+    "$date": "2025-06-04T23:30:53.992Z"
+  },
+  "updated_at": {
+    "$date": "2025-06-04T23:30:53.992Z"
+  },
+  "extern_id": "b13b8ed2543f2ca7e1874fc2e63282e0",
+  "extern_api": "NewsData",
+  "title": "EU closing in on the 2030 climate and energy targets, according to national plans",
+  "description": "EU member states have significantly closed the gap to achieving the 2030 energy and climate targets, according to the European Commission's assessment of the National Energy and Climate Plans (NECPs). EU countries have substantially improved their plans following Commission recommendations in December 2023. As a result, the EU is closing in collectively on a 55% reduction in greenhouse gas (GHG) emissions, as committed [...]",
+  "content": "ONLY AVAILABLE IN PAID PLANS",
+  "url": "https://www.eureporter.co/environment/2025/06/03/eu-closing-in-on-the-2030-climate-and-energy-targets-according-to-national-plans/",
+  "author": {
+    "name": "EU Reporter Correspondent"
+  },
+  "source": {
+    "name": "Eureporter Co",
+    "url": "https://www.eureporter.co"
+  },
+  "published_at": "2025-06-03 07:30:00",
+  "language": "english",
+  "country": "united kingdom",
+  "tags": [
+    "environment",
+    "full-image",
+    "climate-neutral economy",
+    "climate change",
+    "featured"
+  ]
+}
+\end{lstlisting}
+
+\textbf{Indexes:}
+
+\begin{enumerate}
+  \item $\{ external\_api: 1, external\_id: 1, title: 1 \}$ (Compound, Unique) : External ID index prevents duplicates articles.
+  \item $\{ published\_at: -1 \}$ : Date indexes support chronological queries
+  \item $\{ tags: 1, published\_at: -1 \}$ (Compound): this compound index optimizes feed generation
+  \item $\{ tags: 1 \}$: for search all possible tags in all articles
+  \item $\{ title: "text", description: "text" \}$ (Text): Text index enables full-text search.
+  (Creation failure due to invalid characters such as Japanese and other non-Latin characters.)
+\end{enumerate}
+
+\subsection{Comments collection}\label{subsec:comments-collection}
+
+\begin{lstlisting}[language=json,label={lst:comments-collection-json-example}]
+{
+  "_id": {
+    "$oid": "684d39437a0814577744e01d"
+  },
+  "created_at": {
+    "$date": "2025-06-14T08:26:06.817Z"
+  },
+  "updated_at": {
+    "$date": "2025-06-14T08:26:06.818Z"
+  },
+  "user_id": "683c758466d99ae51f0508d4",
+  "article_id": "6840dbaa2c0129e299fbd9db",
+  "content": "My first comment"
+}
+\end{lstlisting}
+
+\textbf{Indexes:}
+
+\begin{enumerate}
+  \item $\{ article\_id: 1, created\_at: -1 \}$ (Compound): this index optimizes comment threading.
+  \item $\{ user\_id: 1 \}$: User index supports profile activity views
+  \item $\{ user\_id: 1, created\_at: -1 \}$ (Compound): User index supports profile activity views
+  \item $\{ comment\_fk: 1, created\_at: -1 \}$ (Compound): this index enables efficient nested comment retrieval
+\end{enumerate}
+
+\subsection{User Interactions collection}\label{subsec:user-interactions-collection}
+
+\begin{lstlisting}[language=json,label={lst:articles-users-interactions-collection-json-example}]
+{
+  "_id": {
+    "$oid": "6855a9d4ecbd85c7cbce08e2"
+  },
+  "article_id": "6840db802c0129e299fbbe29",
+  "user_id": "683c758466d99ae51f0508d4",
+  "article_title": "Apple names 2025 Design Awards winners",
+  "level_interaction": "article",
+  "liked": true,
+  "read_at": {
+    "$date": "2025-06-20T18:35:00.451Z"
+  },
+  "saved": true,
+  "shared": false,
+  "time_spent": 2,
+  "updated_at": {
+    "$date": "2025-06-20T18:35:00.451Z"
+  },
+  "report": false
+}
+\end{lstlisting}
+
+\textbf{Indexes:}
+
+\begin{enumerate}
+  \item $\{ user\_id: 1,  read\_at: -1\}$ (Compound): this index powers reading history
+  \item $\{ article\_id: 1 \}$ : this index supports engagement analytics
+  \item $\{ article\_id: 1,  updated\_at: -1\}$ (Compound): this index powers reading article stats
+\end{enumerate}
+
+\subsection{Server Error Logs collection}\label{subsec:server-error-logs-collection}
+
+\begin{lstlisting}[language=json,label={lst:server-logs-collection-json-example}]
+{
+  "_id": {
+    "$oid": "684241a852621fd670c36a1c"
+  },
+  "created_at": {
+    "$date": "2025-06-06T01:17:05.512Z"
+  },
+  "updated_at": {
+    "$date": "2025-06-06T01:17:05.512Z"
+  },
+  "request_data": {
+    "url": "http://127.0.0.1:5000/api/test/error",
+    "method": "POST",
+    "body": {},
+    "args": {},
+    "headers": {
+      "Host": "127.0.0.1:5000",
+      "Sec-Fetch-Site": "same-origin",
+      "Accept": "application/json",
+      "Origin": "http://127.0.0.1:5000",
+      "Sec-Fetch-Mode": "cors",
+      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Safari/605.1.15",
+      "Referer": "http://127.0.0.1:5000/api/docs/",
+      "Sec-Fetch-Dest": "empty",
+      "Content-Length": "0",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Priority": "u=3, i",
+      "Accept-Encoding": "gzip, deflate",
+      "Connection": "keep-alive"
+    },
+    "form": {}
+  },
+  "curl": "curl -X POST -H 'Host: 127.0.0.1:5000' -H 'Sec-Fetch-Site: same-origin' -H 'Accept: application/json' -H 'Origin: http://127.0.0.1:5000' -H 'Sec-Fetch-Mode: cors' -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Safari/605.1.15' -H 'Referer: http://127.0.0.1:5000/api/docs/' -H 'Sec-Fetch-Dest: empty' -H 'Accept-Language: en-US,en;q=0.9' -H 'Priority: u=3, i' -H 'Accept-Encoding: gzip, deflate' -H 'Connection: keep-alive'  'http://127.0.0.1:5000/api/test/error'",
+  "exception_name": "UnsafeException",
+  "exception_message": "Test Error: POST"
+}
+\end{lstlisting}
+
+\textbf{Indexes:}
+
+\begin{enumerate}
+  \item $\{ created\_at \}$ : this index support log rotation
+\end{enumerate}
+
+\section{Redis Data Structures}\label{sec:redis-data-structures}
+
+\subsection{Article Caching}\label{subsec:article-caching}
+
+When an article appears in a user's News Feed, there's a probability that the user will want to read it, so the article is fully cached for quick access.
+This with a ttl of 10 minutes.
+
+\subsection{User caching}\label{subsec:user-caching}
+
+The user comes fully cached for fast access especially for his reading preferences.
+This with an infinite ttl.
+
+
+
+
+
