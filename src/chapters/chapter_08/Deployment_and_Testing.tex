@@ -197,3 +197,125 @@ Container logs were also inspected using docker logs and integration with monito
 
 
 
+\section{Deployment Architecture Across Three Machines}\label{sec:deployment-architecture-across-three-machines}
+
+
+The system has been deployed across three virtual machines within the same private network.
+Each machine hosts a combination of services to ensure high availability, efficient resource distribution, and resilience.
+
+For this deployment, I have this configuration:
+
+\begin{tabularx}{\textwidth}{llX}
+  \toprule
+  Machine & IP Address & Services \\
+  \midrule
+  Machine 1 & 10.1.1.17 & MongoDB (Primary) + Redis Replica (Slave) \\
+  Machine 2 & 10.1.1.18 & Redis Master + MongoDB (Slave) \\
+  Machine 3 & 10.1.1.19 & Flask Backend API + React Frontend (Vite + Nginx) + Redis Sentinel (Monitoring) \\
+  \bottomrule
+\end{tabularx}
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=1\textwidth]{chapters/chapter_08/deployment-vm-3}
+    \caption{Deployment Architecture Accross Three Machines}
+    \label{fig:deployment-vm-3}
+\end{figure}
+
+\subsection{MongoDB Replicat Set}\label{subsec:mongodb-replicat-set}
+
+\textbf{MongoDB} is deployed as a replica set across Machines 1 and 2.
+
+\begin{itemize}
+  \item Primary (10.1.1.17) handles all write operations.
+  \item Secondary (10.1.1.18) replicates the primary and allows read scalability.
+  \item The backend connects using the replica set URI: $MONGODB\_URI=mongodb://10.1.1.17:27017,10.1.1.18:27017/?replicaSet=rs0$.
+\end{itemize}
+
+\subsection{Redis Replication + Sentinel}\label{subsec:redis-replication-+-sentinel}
+
+Redis is set up with a master-slave configuration:
+
+\begin{itemize}
+  \item Master on 10.1.1.18.
+  \item Replica (slave) on 10.1.1.17.
+  \item Sentinel on 10.1.1.19 monitors the Redis master and handles automatic failover.
+  \item Now, the backend is directly connected to the master.
+\end{itemize}
+
+\subsection{Flask Backend}\label{subsec:flask-backend}
+
+The Flask API backend is hosted on Machine 3 (10.1.1.19).
+It connects to MongoDB and Redis using internal IPs.
+
+It's launched in production using \textbf{Gunicorn}, with the following environment configuration:
+
+
+\begin{lstlisting}[style=bashstyle,label={lst:flask-api-backend-environment},caption={Flask API Backend Environment}]
+FLASK_APP=src/app.py
+FLASK_ENV=production
+MONGODB_URI=mongodb://10.1.1.17:27017,10.1.1.18:27017/?replicaSet=rs0
+REDIS_URL=redis://10.1.1.18:6379
+\end{lstlisting}
+
+Deployment steps from ./run-flask-prod.sh:
+
+\begin{lstlisting}[style=bashstyle,label={lst:flask-backend-deployment-step},caption={Flask Backend Deployment Step}]
+#!/bin/bash
+
+# Exit if any command fails
+set -e
+
+# Define your project root (adjust this if needed)
+PROJECT_DIR=$(dirname "$0")
+
+cd "$PROJECT_DIR"
+
+# Set environment variables
+export FLASK_APP=src/app.py
+export FLASK_ENV=production
+export FLASK_ENV_FILE=.env.prod
+
+# Clean existing virtual environment
+rm -rf .venv
+
+python3.13 -m venv --without-pip .venv
+
+# Activate virtual environment
+source .venv/bin/activate
+curl -sS https://bootstrap.pypa.io/get-pip.py | python
+
+# Install dependencies
+pip install --upgrade pip
+pip install --no-cache-dir -r requirements.txt
+
+# Run using Gunicorn (you can change workers if needed)
+gunicorn -b 0.0.0.0:5000 src.app:application
+
+\end{lstlisting}
+
+\subsection{React Frontend}\label{subsec:react-frontend}
+
+The React app is built using \textbf{Vite} and served via \textbf{Nginx} on port 3000 on Machine 3.
+
+It reads the base API URL at build time via .env:
+\begin{lstlisting}[style=bashstyle,label={lst:react-frontend-environment},caption={React Frontend Environment}]
+VITE_BASE_URL_API=http://10.1.1.19:5000
+\end{lstlisting}
+
+Deployment steps:
+
+\begin{lstlisting}[style=bashstyle,label={lst:react-frontend-deployment-step},caption={React Frontend Deployment Step}]
+  npm install
+  npm run build
+  npm start
+\end{lstlisting}
+
+
+The frontend app is available locally via ssh on
+\begin{lstlisting}[style=bashstyle,label={lst:react-frontend-access-ssh},caption={React Frontend Access via SSH Command}]
+ssh -N -L 3000:localhost:3000 root@10.1.1.19
+\end{lstlisting}
+
+
+
